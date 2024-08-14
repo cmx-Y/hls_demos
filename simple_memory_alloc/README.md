@@ -102,4 +102,21 @@ cp ../hw_src/alveo_examples.xclbin ./
 
 从图中可以看到 unaligned host pointer warning，这是因为我们传输到板卡或从板卡传输的所有 buffer 都没有满足 Alveo DMA 引擎所需的 4 KiB 边界对齐。因此，我们需要复制缓冲区内容，以便在传输之前对齐它们，而该操作开销很大。
 
-接下来我们会修改 `BUFSIZE` 来进行一些 profile 实验，实验结果如下：
+接下来我们会修改 `BUFSIZE` 来进行一些 profile 实验，实验结果如下，其中时间单位为 ms：
+
+| BUFSIZE                     | 24M     | 48M     | 96M     | 192M    | 384M     |
+|-----------------------------|---------|---------|---------|---------|----------|
+| OCL Initialization          | 189.077 | 213.304 | 249.840 | 279.545 | 330.445  |
+| Buffer Allocation           | 0.020   | 0.019   | 0.016   | 0.018   | 0.019    |
+| Buffer Population           | 67.433  | 135.391 | 267.871 | 531.486 | 1066.288 |
+| Software VADD               | 42.348  | 84.687  | 168.109 | 341.356 | 681.165  |
+| Buffer Mapping              | 27.820  | 54.956  | 106.038 | 205.436 | 378.098  |
+| Write Buffers Out           | 20.555  | 30.049  | 46.584  | 170.465 | 213.417  |
+| Set Kernel Args             | 0.009   | 0.013   | 0.016   | 0.016   | 0.017    |
+| Kernel Runtime              | 96.204  | 191.980 | 383.688 | 767.041 | 1533.871 |
+| Read Buffer In              | 26.626  | 44.940  | 72.024  | 132.101 | 252.292  |
+
+从实验结果可以看出：
+
+- `Buffer Allocation`，`Set Kernel Args` 与 BUFSIZE 几乎无关
+- `Buffer Population`，`Software VADD`，`Buffer Mapping`，`Kernel Runtime`，`Read Buffer In` 随着 BUFSIZE 线性增加
