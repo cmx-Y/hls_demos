@@ -120,3 +120,32 @@ cp ../hw_src/alveo_examples.xclbin ./
 
 - `Buffer Allocation`，`Set Kernel Args` 与 BUFSIZE 几乎无关
 - `Buffer Population`，`Software VADD`，`Buffer Mapping`，`Kernel Runtime`，`Read Buffer In` 随着 BUFSIZE 线性增加
+
+如前所述，unaligned host pointer 会带来巨大的开销，因此接下来我们会给出对齐版本的代码，并进行一些实验来说明不对齐带来的影响。
+
+修改如下代码即可实现对齐的 host 端内存分配：
+
+```c++
+    ret = posix_memalign((void **)&a, 4096, BUFSIZE * sizeof(uint32_t));
+    ret |= posix_memalign((void **)&b, 4096, BUFSIZE * sizeof(uint32_t));
+    ret |= posix_memalign((void **)&c, 4096, BUFSIZE * sizeof(uint32_t));
+    ret |= posix_memalign((void **)&d, 4096, BUFSIZE * sizeof(uint32_t));
+```
+
+实验结果如下表：
+
+| BUFSIZE            | 24M(unalign) | 24M(align) | 48M(unalign) | 48M(align) | 96M(unalign) | 96M(align) |
+|--------------------|--------------|------------|--------------|------------|--------------|------------|
+| OCL Initialization | 219.134      | 222.546    | 225.307      | 264.934    | 236.571      | 211.247    |
+| Buffer Allocation  | 0.019        | 0.021      | 0.018        | 0.021      | 0.019        | 0.020      |
+| Buffer Population  | 66.469       | 69.206     | 131.822      | 135.618    | 265.040      | 268.493    |
+| Software VADD      | 42.371       | 42.050     | 83.939       | 86.481     | 170.171      | 170.291    |
+| Buffer Mapping     | 26.375       | 6.485      | 51.944       | 13.761     | 103.493      | 29.288     |
+| Write Buffers Out  | 20.662       | 18.237     | 29.252       | 25.478     | 48.076       | 39.536     |
+| Set Kernel Args    | 0.011        | 0.012      | 0.011        | 0.013      | 0.013        | 0.016      |
+| Kernel Runtime     | 96.092       | 96.092     | 191.955      | 191.965    | 383.686      | 383.697    |
+| Read Buffer In     | 27.556       | 8.963      | 41.083       | 13.036     | 74.407       | 19.578     |
+
+从表中可以看出：
+
+- 对齐分配内存会显著降低 `Buffer Mapping`，`Read Buffer In` 所需时间

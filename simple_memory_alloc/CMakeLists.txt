@@ -43,3 +43,21 @@ target_link_libraries(01_simple_malloc PRIVATE
   ${CMAKE_DL_LIBS}
   example_utils
   )
+
+add_executable(02_aligned_malloc
+  sw_src/02_aligned_malloc.cpp)
+
+target_include_directories(02_aligned_malloc PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/sw_src
+  ${XRT_INCLUDE_DIRS}
+  ${OpenCL_INCLUDE_DIRS}
+  )
+
+target_link_libraries(02_aligned_malloc PRIVATE
+  ${XRT_LIBS}
+  ${OpenCL_LIBRARIES}
+  pthread
+  uuid
+  ${CMAKE_DL_LIBS}
+  example_utils
+  )
